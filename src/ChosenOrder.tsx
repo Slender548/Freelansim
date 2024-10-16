@@ -59,6 +59,10 @@ const styles = StyleSheet.create({
   orderCur: {
     flex: 2,
   },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 type FullOrder = {
@@ -125,7 +129,7 @@ export default function ChosenOrder({curOrder}: ChosenOrderProps) {
             </View>
           </View>
         ) : (
-          <View>
+          <View style={styles.center}>
             <Text>Выберите задание</Text>
           </View>
         )}
