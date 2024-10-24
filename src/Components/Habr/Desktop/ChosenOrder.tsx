@@ -72,7 +72,7 @@ type FullOrder = {
   views?: string;
   responses?: string;
   published?: string;
-  tags: string[];
+  tags?: string[];
   url?: string;
 };
 
@@ -100,11 +100,11 @@ export default function ChosenOrder({curOrder}: ChosenOrderProps) {
                 </Text>
               </View>
               <View style={styles.curOrderTags}>
-                {curOrder.tags.map((tag, idx) => (
+                {curOrder.tags ? curOrder.tags.map((tag, idx) => (
                   <Text key={idx} style={styles.curOrderTag}>
                     {tag}
                   </Text>
-                ))}
+                )) : null}
               </View>
               <View style={styles.curOrderMetaView}>
                 <View style={styles.curOrderInteractionsView}>

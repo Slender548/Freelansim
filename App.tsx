@@ -6,11 +6,13 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, View, VirtualizedList} from 'react-native';
-import SideButton from './src/SideButton';
-import {parse} from 'node-html-parser';
-import ChosenOrder from './src/ChosenOrder';
+import {Button, StyleSheet, Text, View, VirtualizedList} from 'react-native';
+import SideButton from './src/Components/Habr/Desktop/SideButton';
+import ChosenOrder from './src/Components/Habr/Desktop/ChosenOrder';
 import DelayInput from 'react-native-debounce-input';
+import Filters from './src/Filters';
+import { SearchParse } from './src/Parsers/Habr/SearchParser';
+import { PageParse } from './src/Parsers/Habr/PageParser';
 
 type FullOrder = {
   title?: string;
@@ -19,7 +21,7 @@ type FullOrder = {
   views?: string;
   responses?: string;
   published?: string;
-  tags: string[];
+  tags?: string[];
   url?: string;
 };
 
@@ -38,40 +40,13 @@ function App(): React.JSX.Element {
   const [curOrder, setCurOrder] = useState<FullOrder | undefined>();
   const [curQuery, setCurQuery] = useState<string>('');
   const [curPage, setCurPage] = useState<number>(1);
+  const [filtersOpened, setFiltersOpened] = useState<boolean>(false);
 
   function updateOrders() {
     setCurPage(1);
-    fetch(`https://freelance.habr.com/tasks?q=${curQuery}&page=${curPage}`)
-      .then(res => res.text())
-      .then(text => {
-        const res: Order[] = [];
-        const dom = parse(text);
-        dom
-          .querySelectorAll('.content-list__item article')
-          .forEach(jobListing => {
-            const title = jobListing
-              .querySelector('.task__title a')
-              ?.textContent.trim();
-            const url = jobListing.querySelector('a')?.getAttribute('href');
-            const responses = jobListing
-              .querySelector('.params__responses')
-              ?.textContent.trim();
-            const views = jobListing
-              .querySelector('.params__views')
-              ?.textContent.trim();
-            const published = jobListing
-              .querySelector('.params__published-at')
-              ?.textContent.trim();
-            const price = jobListing
-              .querySelector('.task__price .count')
-              ?.textContent.trim();
-            const tags = Array.from(
-              jobListing.querySelectorAll('.tags__item_link'),
-            ).map(tag => tag.textContent.trim());
-            res.push({title, responses, views, published, price, tags, url});
-          });
-        setOrders(res);
-      });
+    const res = SearchParse(curQuery, curPage);
+    setOrders(res);
+    console.log(res);
   }
 
   useEffect(() => {
@@ -84,88 +59,39 @@ function App(): React.JSX.Element {
       return;
     }
     const url = `https://freelance.habr.com${task_url}`;
-    fetch(url)
-      .then(res => res.text())
-      .then(text => {
-        const dom = parse(text);
-        const title = dom.querySelector('.task__title ')?.textContent.trim();
-        const price = dom.querySelector('.task__finance')?.textContent.trim();
-        const tags = Array.from(dom.querySelectorAll('.tags__item_link')).map(
-          tag => tag.textContent.trim(),
-        );
-        const description = dom
-          .querySelector('.task__description')
-          ?.textContent.trim();
-        const metaText = dom.querySelector('.task__meta')?.textContent.trim();
-        if (metaText) {
-          const [published, responses, views] = metaText
-            .trim()
-            .replaceAll('\n', '')
-            .split('•');
-          setCurOrder({
-            published,
-            responses,
-            views,
-            description,
-            title,
-            price,
-            tags,
-            url,
-          });
-        }
-      });
+    const res = PageParse(url);
+    setCurOrder(res);
   }
 
   function addMoreOrders() {
     setCurPage((_curPage) => {return _curPage + 1;});
-    fetch(`https://freelance.habr.com/tasks?q=${curQuery}&page=${curPage}`)
-      .then(res => res.text())
-      .then(text => {
-        const res: Order[] = [];
-        const dom = parse(text);
-        dom
-          .querySelectorAll('.content-list__item article')
-          .forEach(jobListing => {
-            const title = jobListing
-              .querySelector('.task__title a')
-              ?.textContent.trim();
-            const url = jobListing.querySelector('a')?.getAttribute('href');
-            const responses = jobListing
-              .querySelector('.params__responses')
-              ?.textContent.trim();
-            const views = jobListing
-              .querySelector('.params__views')
-              ?.textContent.trim();
-            const published = jobListing
-              .querySelector('.params__published-at')
-              ?.textContent.trim();
-            const price = jobListing
-              .querySelector('.task__price .count')
-              ?.textContent.trim();
-            const tags = Array.from(
-              jobListing.querySelectorAll('.tags__item_link'),
-            ).map(tag => tag.textContent.trim());
-            res.push({title, responses, views, published, price, tags, url});
-          });
-        setOrders([...orders, ...res]);
-      });
+    const res = SearchParse(curQuery, curPage);
+    setOrders([...orders, ...res]);
   }
 
   function handleChangeQuery(query: string | number) {
     setCurQuery(typeof query === 'string' ? query : String(query));
   }
 
+  function showPopup() {
+    setFiltersOpened(true);
+  }
+
   return (
     <View style={styles.wholeWindow}>
+      {filtersOpened && <Filters />}
       <View style={styles.ordersMenu}>
         {/* <SearchBar  */}
-        <View>
+        <View style={{flexDirection: 'row', width: '100%',}}>
           <DelayInput
+            style={{width: '90.5%'}}
             onChangeText={handleChangeQuery}
             value={curQuery}
             minLength={2}
             delayTimeout={500}
+            placeholder="Search..."
           />
+          <Button title="☰" onPress={showPopup} />
         </View>
         <VirtualizedList
           renderItem={({item}: {item: Order}) => (
